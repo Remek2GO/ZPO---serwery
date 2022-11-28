@@ -1,6 +1,6 @@
 import unittest
 
-from ostateczna_wersj_serwus import Server, ListServer, Product, Client, TooManyProductsFoundError, MapServer
+from servers import Server, ListServer, Product, Client, TooManyProductsFoundError, MapServer
 
 server_types = (ListServer, MapServer)
 
