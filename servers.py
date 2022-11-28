@@ -1,8 +1,8 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
  
-from typing import Optional, List, Dict
-from abc import TypeVar, ABC, abstractmethod
+from typing import Optional, List, Dict, TypeVar
+from abc import  ABC, abstractmethod
 import re
 
 
