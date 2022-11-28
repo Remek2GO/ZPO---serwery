@@ -4,11 +4,7 @@
 from typing import Optional, List, Dict
 from abc import TypeVar, ABC, abstractmethod
 import re
- 
-# FIXME: Każada z poniższych klas serwerów powinna posiadać:
-#   (1) metodę inicjalizacyjną przyjmującą listę obiektów typu `Product` i ustawiającą atrybut `products` zgodnie z typem reprezentacji produktów na danym serwerze,
-#   (2) możliwość odwołania się do atrybutu klasowego `n_max_returned_entries` (typu int) wyrażający maksymalną dopuszczalną liczbę wyników wyszukiwania,
-#   (3) możliwość odwołania się do metody `get_entries(self, n_letters)` zwracającą listę produktów spełniających kryterium wyszukiwania
+
 
 
 class ServerError(Exception):
@@ -31,17 +27,21 @@ class Server(ABC): #klasa abstrakcyjna
     def __init__(self, *args, **kwargs) -> None:
          super().__init__()
 
-    def get_entries(self, n_letters) -> List[Product]: #ogólna metoda zwracająca listę produktów na podstawie zadanej liczby liter 
-        characters = '^[a-zA-Z]{{{n}}}\\d{{2,3}}$'.format(n=n_letters)
+
+    def get_entries (self, n_letters) -> List[Product]: #ogólna metoda zwracająca listę produktów na podstawie zadanej liczby liter
         entries = []
-        for i in self._get_products(n_letters):
-            if re.match(characters,i.name): #sprawdzenie czy spełniają kryterium
-                entries.append(i)
+        for x in self._get_products(n_letters):
+            if len(x) <= n_letters+3:
+                try:
+                    if (90 >= ord(x[n_letters-1]) >= 65) or ( 122 >= ord(x[n_letters-1]) >= 97)  and (57 >= ord(x[n_letters]) >= 48) :  
+                        entries.append(x)
+                except: 
+                    pass
             if len(entries) > Server.n_max_returned_entries:
-                return TooManyProductsFoundError
-
+                raise TooManyProductsFoundError('Too many products were found')
+            
         return sorted(entries, key = lambda entry: entry.price) #sortowanie względem ceny produktu
-
+    
 
     @abstractmethod #dostarcza niezbędnych danych metodzie wyżej
     def _get_products(self,n_letters: int = 1)-> List[Product]:
