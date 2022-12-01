@@ -2,17 +2,23 @@ import unittest
 
 from servers import Server, ListServer, Product, Client, TooManyProductsFoundError, MapServer
 
-server_types = (ListServer, MapServer)
+
 
 class ServerTest(unittest.TestCase):
     def test_get_entries_returns_sorted_results(self):
         products = [Product('P12', 1), Product('PP234', 2), Product('PP235', 1)]
         server = ListServer(products)
-        entries = server.get_entries(3)
+        entries = server.get_entries(2)
 
-        self.assertListEqual([], entries)
-        print(entries)
 
+        self.assertListEqual([products[2], products[1]], entries)
+
+    def test_get_entries_raises_exceptions_if_too_many_results(self):
+        products = [Product('PP234', 2)] * (Server.n_max_returned_entries + 1)
+        server = ListServer(products)
+
+        with self.assertRaises(TooManyProductsFoundError):
+            server.get_entries(2)
    
 
 
