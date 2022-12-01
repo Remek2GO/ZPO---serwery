@@ -7,6 +7,8 @@ import re
 
 
 
+
+
 class ServerError(Exception):
     pass 
 
@@ -28,19 +30,13 @@ class Server(ABC): #klasa abstrakcyjna
          super().__init__()
 
 
-    def get_entries (self, n_letters) -> List[Product]: #ogólna metoda zwracająca listę produktów na podstawie zadanej liczby liter
-        entries = []
-        for x in self._get_products(n_letters):
-            if len(x) <= n_letters+3:
-                try:
-                    if (90 >= ord(x[n_letters-1]) >= 65) or ( 122 >= ord(x[n_letters-1]) >= 97)  and (57 >= ord(x[n_letters]) >= 48) :  
-                        entries.append(x)
-                except: 
-                    pass
-            if len(entries) > Server.n_max_returned_entries:
-                raise TooManyProductsFoundError('Too many products were found')
-            
-        return sorted(entries, key = lambda entry: entry.price) #sortowanie względem ceny produktu
+    def get_entries(self, n_letters: int = 1) -> List[Product]:
+        pattern = '^[a-zA-Z]{{{n_letters}}}\\d{{2,3}}$'.format(n_letters=n_letters)
+        entries = [p for p in self._get_products(n_letters)
+                   if re.match(pattern, p.name)]
+        if len(entries) > Server.n_max_returned_entries:
+            raise TooManyProductsFoundError
+        return sorted(entries, key=lambda entry: entry.price) #sortowanie względem ceny produktu
     
 
     @abstractmethod #dostarcza niezbędnych danych metodzie wyżej
