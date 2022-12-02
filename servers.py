@@ -4,74 +4,112 @@
 from typing import Optional, List, Dict, TypeVar
 from abc import  ABC, abstractmethod
 import re
-
-
-
+from re import match
 
 
 class ServerError(Exception):
     pass 
 
-class TooManyProductsFoundError(ServerError):
+class TooManyProductsFoundError(Exception):
     # Reprezentuje wyjątek związany ze znalezieniem zbyt dużej liczby produktów.
     pass
 
 class Product:
     def __init__(self, name: str, price: float) -> None: #metoda inicjalizacyjna
-        if name.isdigit() or name.isalpha() or name == None: # sprawdzam czy nazwa jest poprawna
-            raise ValueError
-        self.name: str = name
-        self.price: float = price
+        if not isinstance(name,str):
+            raise ValueError('Name should be created only with string')
+        if not isinstance(price, (int, float)):
+            raise ValueError('Price should be float or int')
+        if not re.fullmatch(r'^[a-zA-Z]+\d+$',name):
+            raise ValueError('Name should be changed to letters and numbers')
+        self.name = name
+        self.price = price
+
+    def __str__(self):
+        return "Nazwa: {0} Cena: {1}".format(self.name, self.price)
+
+    def __eq__(self, other):
+        return self.name == other.name and self.price == other.price
+
+    def __hash__(self):
+        return hash((self.name, self.price))
+
+    def get_price(self):
+        return self.price
+
+    def get_name(self):
+        return self.name
+
+n_letters = int
+n_max_returned_entries = int
 
 class Server(ABC): #klasa abstrakcyjna
     n_max_returned_entries = 3
+    def __init__(self, list_product: List[Product]):
+        self.list_product = list_product
 
-    def __init__(self, *args, **kwargs) -> None:
-         super().__init__()
+    @abstractmethod
+    def get_entries(self, n_letters = 1):
+        pass
 
-
-    def get_entries(self, n_letters: int = 1) -> List[Product]:
-        pattern = '^[a-zA-Z]{{{n_letters}}}\\d{{2,3}}$'.format(n_letters=n_letters)
-        entries = [p for p in self._get_products(n_letters)
-                   if re.match(pattern, p.name)]
-        if len(entries) > Server.n_max_returned_entries:
-            raise TooManyProductsFoundError
-        return sorted(entries, key=lambda entry: entry.price) #sortowanie względem ceny produktu
-    
-
-    @abstractmethod #dostarcza niezbędnych danych metodzie wyżej
-    def _get_products(self,n_letters: int = 1)-> List[Product]:
-        raise NotImplementedError
-
-ServerType = TypeVar('ServerType', bound=Server) #Użycie TypeVar aby otrzymać ten sam typ serwera
+    @classmethod
+    def checklenght(cls, list):
+        if len(list) > cls.n_max_returned_entries:
+            raise TooManyProductsFoundError('Too many products were found')
+        pass
 
 
 class Client:
-    def __init__(self, server: ServerType) -> None: # metoda inicjalizacyjna
-        self.server: ServerType = server
-
-    def get_total_price(self, n_letters: Optional[int]) -> float:
+    def __init__(self,client_server: Server):
+        self.client_server = client_server
+    def get_total_price(self, n_letters: Optional[int]) -> Optional[float]:
+        total_price=0.0
         try:
-            entries = self.server.get_entries() if n_letters is None \
-                else self.server.get_entries(n_letters)
-            return sum([entry.price for entry in entries])
+            l_product = self.client_server.get_entries(n_letters)
+            if len(l_product) == 0:
+                return None
+            else:
+                for product in l_product:
+                    total_price = total_price + product.price
+            return total_price
         except TooManyProductsFoundError:
-            return 0
+            return None
 
 class ListServer(Server):
 
-    def __init__(self, products: List[Product], *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
-        self.products: List[Product] = products
+    def __init__(self, list_product: List[Product]):
+        super().__init__(list_product)
+        self.list = self.list_product
 
-    def _get_products(self, n_letters: int = 1) -> List[Product]:
-        return self.products
+    def get_entries(self,n_letters = 1):
+        outcome = []
+        for obj in self.list:
+            name = obj.name
+            result = match('^[a-zA-Z]{{{n}}}\\d{{2,3}}$'.format(n=n_letters),name)
+            if result is not None:
+                outcome.append(obj)
+
+        ListServer.checklenght(outcome)
+
+        outcome.sort(key = lambda a: a.get_price())
+
+        return outcome
  
 class MapServer(Server):
 
-    def __init__(self, products: List[Product], *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
-        self.products: Dict[str, Product] = {p.name: p for p in products}
-        
-    def _get_products(self, products: List[Product], n_letters: int = 1) -> List[Product]:
-        return list(self.products.values())
+    def __init__(self, list_product: List[Product]):
+        super().__init__(list_product)
+        self.dic = {obj.name: obj for obj in self.list_product }
+
+    def get_entries(self,n_letters = 1):
+        outcome = []
+        for key, obj in self.dic.items():
+            result = match('^[a-zA-Z]{{{n}}}\\d{{2,3}}$'.format(n=n_letters), key)
+            if result is not None:
+                outcome.append(obj)
+
+        MapServer.checklenght(outcome)
+
+        outcome.sort(key = lambda a: a.get_price())
+
+        return outcome
